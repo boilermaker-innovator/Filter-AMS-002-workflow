@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alliance AMS - Complete Customer Workflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .demo-container {
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .header {
+        background: linear-gradient(135deg, #0066CC 0%, #003366 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+
+    .header h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    .demo-trigger {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .trigger-btn {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        padding: 20px 40px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .trigger-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    }
+
+    /* Workflow Popup Styles */
+    .workflow-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .workflow-overlay.active {
+        display: flex;
+    }
+
+    .workflow-popup {
+        background: white;
+        width: 95vw;
+        max-width: 900px;
+        max-height: 90vh;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+        animation: slideInWorkflow 0.5s ease;
+        position: relative;
+        border: 3px solid #0066CC;
+    }
+
+    @keyframes slideInWorkflow {
+        from { 
+            opacity: 0; 
+            transform: scale(0.8) translateY(-40px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: scale(1) translateY(0); 
+        }
+    }
+
+    .workflow-header {
+        background: linear-gradient(135deg, #0066CC 0%, #003366 100%);
+        color: white;
+        padding: 25px;
+        position: relative;
+        text-align: center;
+    }
+
+    .workflow-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .workflow-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+
+    .workflow-close {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .workflow-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .workflow-content {
+        padding: 0;
+        max-height: calc(90vh - 100px);
+        overflow-y: auto;
+    }
+
+    .workflow-step {
+        padding: 30px;
+        border-bottom: 1px solid #e9ecef;
+        position: relative;
+    }
+
+    .workflow-step:last-child {
+        border-bottom: none;
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .step-number {
+        background: #0066CC;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .step-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .step-description {
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+
+    .workflow-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #0066CC;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 10px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .checkbox-item input {
+        width: auto;
+    }
+
+    .workflow-button {
+        background: linear-gradient(135deg, #0066CC 0%, #003366 100%);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-top: 15px;
+    }
+
+    .workflow-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+    }
+
+    .workflow-button.secondary {
+        background: #6c757d;
+    }
+
+    .workflow-button.success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .price-summary {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        padding: 20px;
+        border-radius: 8px;
+        border: 2px solid #28a745;
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .price-amount {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #155724;
+        margin-bottom: 8px;
+    }
+
+    .price-breakdown {
+        color: #155724;
+        font-size: 0.9rem;
+    }
+
+    .payment-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .payment-option {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .payment-option:hover, .payment-option.selected {
+        border-color: #0066CC;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+    }
+
+    .payment-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .status-confirmed {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-processing {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    @media (max-width: 768px) {
+        .workflow-popup {
+            width: 98vw;
+            max-height: 95vh;
+        }
+
+        .workflow-step {
+            padding: 20px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .payment-options {
+            grid-template-columns: 1fr;
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>Alliance AMS Complete Workflow Demo</h1>
+            <p>From Filter Selection to Service Completion - The Full Customer Journey</p>
+        </div>
+
+```
+    <div class="demo-trigger">
+        <h2 style="margin-bottom: 20px;">Customer wants filters for Caterpillar 777G Haul Truck</h2>
+        <p style="margin-bottom: 30px; color: #666;">Click below to see the complete Alliance AMS workflow from initial inquiry to service completion</p>
+        <button class="trigger-btn" onclick="startWorkflow()">
+            🚛 Start Customer Journey
+        </button>
+    </div>
+</div>
+
+<!-- Workflow Popup -->
+<div class="workflow-overlay" id="workflowOverlay" onclick="closeWorkflow()">
+    <div class="workflow-popup" onclick="event.stopPropagation()">
+        <div class="workflow-header">
+            <div class="workflow-title">Alliance AMS Customer Workflow</div>
+            <div class="workflow-subtitle">Caterpillar 777G Haul Truck - Complete Filter Parts Supply</div>
+            <button class="workflow-close" onclick="closeWorkflow()">&times;</button>
+        </div>
+        
+        <div class="workflow-content">
+            <!-- Step 1: Filter Selection & Quote -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Filter Selection & Instant Quote</div>
+                </div>
+                <div class="step-description">
+                    Customer used iTabs filter lookup, selected required filters, system generated instant quote with current pricing and availability.
+                </div>
+                
+                <div class="workflow-form">
+                    <h4 style="margin-bottom: 15px;">Selected Filters - CAT 777G Haul Truck</h4>
+                    <div style="background: white; padding: 15px; border-radius: 6px;">
+                        <div style="display: grid; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>Engine Oil Filter (1R-1808)</span>
+                                <span><strong>$65.00</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>Hydraulic Filter (9T-0973)</span>
+                                <span><strong>$95.00</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>Air Filter Primary (6I-2509)</span>
+                                <span><strong>$185.00</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>Fuel Filter Water Separator (1R-0771)</span>
+                                <span><strong>$75.00</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <span>Transmission Filter (3I-0015)</span>
+                                <span><strong>$125.00</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                <span>Brake Cooling Filter (4T-0788)</span>
+                                <span><strong>$85.00</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="price-summary">
+                        <div class="price-amount">$630.00</div>
+                        <div class="price-breakdown">Complete Filter Service Kit + GST</div>
+                    </div>
+                    
+                    <div class="status-indicator status-confirmed">
+                        ✅ All filters in stock - Same day Perth delivery available
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Customer Information & Service Options -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Customer Details & Service Options</div>
+                </div>
+                <div class="step-description">
+                    Customer provides contact information and chooses delivery/service preferences. Alliance AMS can deliver parts or provide complete installation service.
+                </div>
+                
+                <div class="workflow-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-input" value="Pilbara Mining Services" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contact Person</label>
+                            <input type="text" class="form-input" value="Mike Stevens - Fleet Manager" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-input" value="(08) 9842-1234" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" value="mstevens@pilbaramining.com.au" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Site Address</label>
+                        <input type="text" class="form-input" value="Mine Site 7, Great Northern Highway, Newman WA 6753" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Delivery Options</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="radio" name="delivery" value="pickup" id="pickup">
+                                <label for="pickup">Customer pickup (Maddington warehouse)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="radio" name="delivery" value="delivery" id="delivery" checked>
+                                <label for="delivery">Direct site delivery ($50 delivery fee)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="radio" name="delivery" value="urgent" id="urgent">
+                                <label for="urgent">Same day urgent delivery ($100 fee)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Equipment & Installation Notes</label>
+                        <textarea class="form-textarea" readonly>CAT 777G Haul Truck
+```
+
+Serial: ABC123456
+Hours: 8,250
+Location: Pit 3 - North Side
+Customer’s maintenance team will install filters
+Required delivery: Wednesday AM before 0800 (maintenance window)</textarea>
+</div>
+</div>
+</div>
+
+```
+            <!-- Step 3: Order Processing & Parts Allocation -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Order Processing & Parts Allocation</div>
+                </div>
+                <div class="step-description">
+                    Alliance AMS processes the order, allocates parts from warehouse inventory, and coordinates delivery logistics with customer's operational requirements.
+                </div>
+                
+                <div class="workflow-form">
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 4px solid #0066CC;">
+                        <h4 style="color: #0066CC; margin-bottom: 15px;">Order #AMS-2025-0847</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <strong>Order Date:</strong><br>
+                                Saturday, July 12, 2025
+                            </div>
+                            <div>
+                                <strong>Delivery Date:</strong><br>
+                                Wednesday, July 16, 2025
+                            </div>
+                            <div>
+                                <strong>Delivery Window:</strong><br>
+                                0700-0800 hours
+                            </div>
+                            <div>
+                                <strong>Driver:</strong><br>
+                                Alliance AMS Delivery
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Parts Status & Warehouse Notes</label>
+                            <textarea class="form-textarea" readonly>PARTS ALLOCATION - CAT 777G FILTER KIT
+```
+
+✅ Engine Oil Filter (1R-1808) - Bay A7, Shelf 3
+✅ Hydraulic Filter (9T-0973) - Bay B12, Shelf 2  
+✅ Air Filter Primary (6I-2509) - Bay C5, Shelf 1
+✅ Fuel Filter (1R-0771) - Bay A9, Shelf 4
+✅ Transmission Filter (3I-0015) - Bay B8, Shelf 3
+✅ Brake Cooling Filter (4T-0788) - Bay C2, Shelf 2
+
+DELIVERY INSTRUCTIONS:
+
+- Site contact: Mike Stevens (0428 123 456)
+- Delivery to: Pit 3 maintenance bay
+- Security clearance: Alliance AMS approved vendor
+- Unload assistance: Customer team available</textarea>
+  </div>
+  </div>
+  
+  ```
+                    <div class="status-indicator status-processing" style="margin-top: 15px;">
+                        📦 All parts allocated - Delivery scheduled for Wednesday AM
+                    </div>
+                </div>
+            </div>
+  
+            <!-- Step 4: Payment Processing -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Payment & Invoice</div>
+                </div>
+                <div class="step-description">
+                    Customer chooses payment method. Alliance AMS processes payment and generates invoice for accounting records.
+                </div>
+                
+                <div class="workflow-form">
+                    <div class="price-summary">
+                        <div class="price-amount">$719.50</div>
+                        <div class="price-breakdown">
+                            Parts: $630.00 + Delivery: $50.00 + GST: $68.00
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin-bottom: 15px;">Payment Options</h4>
+                    <div class="payment-options">
+                        <div class="payment-option">
+                            <div class="payment-icon">💳</div>
+                            <h5>Credit Card</h5>
+                            <p>Immediate processing</p>
+                        </div>
+                        <div class="payment-option selected">
+                            <div class="payment-icon">🏢</div>
+                            <h5>Account Billing</h5>
+                            <p>Net 30 days</p>
+                        </div>
+                        <div class="payment-option">
+                            <div class="payment-icon">💰</div>
+                            <h5>Direct Transfer</h5>
+                            <p>Same day processing</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #d4edda; padding: 15px; border-radius: 6px; border: 1px solid #c3e6cb;">
+                        <strong>Trade Customer Pricing Applied</strong><br>
+                        Parts discount: 15% off retail | Priority delivery scheduling | Extended payment terms
+                    </div>
+                    
+                    <div class="status-indicator status-confirmed" style="margin-top: 15px;">
+                        ✅ Invoice #INV-2025-2847 generated - Sent to accounts@pilbaramining.com.au
+                    </div>
+                </div>
+            </div>
+  
+            <!-- Step 5: Delivery & Customer Follow-up -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Delivery & Customer Follow-up</div>
+                </div>
+                <div class="step-description">
+                    Alliance AMS delivers parts to customer site, confirms receipt, and provides follow-up service including next order reminders and technical support when needed.
+                </div>
+                
+                <div class="workflow-form">
+                    <div style="background: #d4edda; padding: 20px; border-radius: 8px; border: 1px solid #c3e6cb;">
+                        <h4 style="color: #155724; margin-bottom: 15px;">✅ Delivery Completed Successfully</h4>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <strong>Delivery Time:</strong><br>
+                                Wednesday 16/07/25 - 07:30
+                            </div>
+                            <div>
+                                <strong>Received By:</strong><br>
+                                Mike Stevens (Fleet Manager)
+                            </div>
+                            <div>
+                                <strong>Condition:</strong><br>
+                                All parts intact, no damage
+                            </div>
+                            <div>
+                                <strong>Next Service Due:</strong><br>
+                                Estimated 500 hours (Oct 2025)
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Delivery Summary & Customer Notes</label>
+                            <textarea class="form-textarea" readonly>PARTS DELIVERY COMPLETED - CAT 777G FILTER KIT
+  ```
+
+✅ All 6 filters delivered in excellent condition
+✅ Parts delivered to Pit 3 maintenance bay as requested
+✅ Customer signed delivery receipt
+✅ Installation notes provided to maintenance team
+✅ Disposal service offered for old filters
+✅ Customer reminded of upcoming service intervals
+
+CUSTOMER FEEDBACK:
+
+- Mike Stevens confirmed parts match equipment exactly
+- Appreciated early morning delivery timing
+- Requested notification for next service parts in 4 months
+- Customer maintenance team familiar with installation procedures
+
+FOLLOW-UP ACTIONS:
+
+- Added to service reminder system (500-hour interval)
+- Customer preferences updated in system
+- Account status: Excellent payment history</textarea>
+  </div>
+  </div>
+  
+  ```
+                    <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; border-left: 4px solid #0066CC; margin-top: 15px;">
+                        <strong>📱 Customer Follow-up Communications:</strong><br>
+                        • SMS to Mike Stevens: "Filter parts delivered successfully to Pit 3. Installation notes included. Thanks for choosing Alliance AMS!"<br>
+                        • Email with delivery confirmation and parts documentation<br>
+                        • Service reminder scheduled for 4 months (estimated next service)
+                    </div>
+                    
+                    <button class="workflow-button success" style="width: 100%; margin-top: 20px;">
+                        📋 View Complete Delivery Documentation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+  ```
+  
+    </div>
+  
+    <script>
+        function startWorkflow() {
+            document.getElementById('workflowOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+  
+        function closeWorkflow() {
+            document.getElementById('workflowOverlay').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+  
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeWorkflow();
+            }
+        });
+  
+        // Auto-start demo when page loads
+        setTimeout(() => {
+            startWorkflow();
+        }, 1500);
+    </script>
+
+</body>
+</html>
