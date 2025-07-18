@@ -626,20 +626,49 @@ Thanks`
         recognizedSKUs: 0
     };
 
-    // SKU detection patterns
-    const skuPatterns = [
-        /\bCALT\b/g,                           // CALT
-        /\b\d{8,11}-\d{5}\b/g,                 // 89425-60170
-        /\bDTKIT-W\/SHOP-CAT\b/g,              // DTKIT-W/SHOP-CAT
-        /\bDT\d{2}-\d+[A-Z]+\b/g,              // DT04-8PA, DT06-8SA
-        /\b\d{4}-\d{3}-\d{5}\b/g,              // 0460-215-16141, 0462-209-16141
-        /\bW\d+[PS]\b/g,                       // W8P, W8S
-        /\bAT\d+[PS]-[A-Z]+\b/g,               // AT8P-BT, AT8S-BT
-        /\bZ\d+\b/g,                           // Z9
-        /\b\d{7}\b/g,                          // 4461492
-        /\b\d-\d{5}\b/g,                       // 3-92110
-        /\bPZQ\d{7}\b/g                        // PZQ6560020
-    ];
+    // Enhanced SKU detection patterns for Gavin's real quotes
+    function findAllSKUs(text) {
+        const foundSKUs = new Set();
+        
+        // Check each SKU in our database against the text
+        Object.keys(skuDatabase).forEach(sku => {
+            // Create flexible patterns for each SKU
+            let patterns = [];
+            
+            if (sku === 'DTKIT-W/SHOP-CAT') {
+                patterns = [
+                    /DTKIT-W\/SHOP-CAT/gi,
+                    /DTKIT-W SHOP-CAT/gi,
+                    /DTKIT W\/SHOP CAT/gi
+                ];
+            } else if (sku.includes('-')) {
+                // For hyphenated codes, try with and without spaces
+                const escaped = sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                patterns = [
+                    new RegExp('\\b' + escaped + '\\b', 'gi'),
+                    new RegExp('\\b' + sku.replace(/-/g, '\\s*-\\s*') + '\\b', 'gi')
+                ];
+            } else {
+                // For simple codes, look for word boundaries
+                const escaped = sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                patterns = [
+                    new RegExp('\\b' + escaped + '\\b', 'gi'),
+                    new RegExp('\\b' + sku + '\\s', 'gi'),
+                    new RegExp(':\\s*' + escaped + '\\b', 'gi'), // For "Oil filter: Z9" format
+                    new RegExp(escaped + '$', 'gmi') // End of line
+                ];
+            }
+            
+            // Test each pattern
+            patterns.forEach(pattern => {
+                if (pattern.test(text)) {
+                    foundSKUs.add(sku);
+                }
+            });
+        });
+        
+        return Array.from(foundSKUs);
+    }
 
     function loadSample(type) {
         const sample = sampleEmails[type];
@@ -665,39 +694,55 @@ Thanks`
             return;
         }
 
-        // Find all potential SKUs
-        const foundSKUs = new Set();
+        // Find all SKUs using enhanced detection
+        const foundSKUs = findAllSKUs(text);
         let highlightedText = text;
 
-        // Apply each pattern
-        skuPatterns.forEach(pattern => {
-            const matches = text.match(pattern);
-            if (matches) {
-                matches.forEach(match => {
-                    // Check if it's in our database
-                    if (skuDatabase[match]) {
-                        foundSKUs.add(match);
-                        // Highlight in text
-                        const regex = new RegExp('\\b' + match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
-                        highlightedText = highlightedText.replace(regex, `<span class="highlighted">${match}</span>`);
-                    }
-                });
+        // Highlight found SKUs in the text
+        foundSKUs.forEach(sku => {
+            // Create multiple patterns to catch different formats
+            let patterns = [];
+            
+            if (sku === 'DTKIT-W/SHOP-CAT') {
+                patterns = [/DTKIT-W\/SHOP-CAT/gi, /DTKIT-W SHOP-CAT/gi];
+            } else if (sku.includes('-')) {
+                const escaped = sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                patterns = [new RegExp('\\b' + escaped + '\\b', 'gi')];
+            } else {
+                const escaped = sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                patterns = [
+                    new RegExp('\\b' + escaped + '\\b', 'gi'),
+                    new RegExp('(:\\s*)(' + escaped + ')\\b', 'gi'),
+                    new RegExp('(' + escaped + ')$', 'gmi')
+                ];
             }
+            
+            patterns.forEach(pattern => {
+                if (pattern.source.includes('(') && pattern.source.includes(')')) {
+                    // For grouped patterns, highlight just the SKU part
+                    highlightedText = highlightedText.replace(pattern, (match, p1, p2) => {
+                        return p1 + `<span class="highlighted">${p2 || match}</span>`;
+                    });
+                } else {
+                    // For simple patterns, highlight the whole match
+                    highlightedText = highlightedText.replace(pattern, `<span class="highlighted">${sku}</span>`);
+                }
+            });
         });
 
         // Update statistics
         stats.totalScans++;
-        stats.totalSKUs += foundSKUs.size;
-        stats.recognizedSKUs += foundSKUs.size;
+        stats.totalSKUs += foundSKUs.length;
+        stats.recognizedSKUs += foundSKUs.length;
         updateStatistics();
 
         // Display results
         let resultsHTML = '';
         
-        if (foundSKUs.size === 0) {
+        if (foundSKUs.length === 0) {
             resultsHTML = '<div style="color: #dc3545; text-align: center; padding: 20px;">❌ No recognized SKUs found in this email.</div>';
         } else {
-            resultsHTML = `<div style="color: #155724; font-weight: bold; margin-bottom: 20px; text-align: center;">✅ Found ${foundSKUs.size} recognized SKU${foundSKUs.size !== 1 ? 's' : ''} in this email:</div>`;
+            resultsHTML = `<div style="color: #155724; font-weight: bold; margin-bottom: 20px; text-align: center;">✅ Found ${foundSKUs.length} recognized SKU${foundSKUs.length !== 1 ? 's' : ''} in this email:</div>`;
             
             foundSKUs.forEach(sku => {
                 const details = skuDatabase[sku];
